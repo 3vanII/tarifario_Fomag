@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from shutil import copy2
 import re
 from typing import Callable
 
@@ -90,6 +89,7 @@ class ExcelAgrupadorService:
         )
 
         self.log(f"Archivo generado correctamente: {output_file}")
+        self.log(f"El archivo final contiene una sola hoja: {config.sheet_name}")
         return AgrupadorResult(
             output_file=output_file,
             total_sheets=len(all_sheets),
@@ -201,16 +201,13 @@ class ExcelAgrupadorService:
         grouped_df: pd.DataFrame,
         grouped_sheet_name: str,
     ) -> None:
-        copy2(input_file, output_file)
-
         keep_vba = output_file.suffix.lower() == ".xlsm"
-        workbook = load_workbook(output_file, keep_vba=keep_vba)
+        workbook = load_workbook(input_file, keep_vba=keep_vba)
 
-        existing_sheets = {name.lower(): name for name in workbook.sheetnames}
         target_name = grouped_sheet_name.strip() or "AGRUPADOR"
 
-        if target_name.lower() in existing_sheets:
-            workbook.remove(workbook[existing_sheets[target_name.lower()]])
+        for sheet_name in list(workbook.sheetnames):
+            workbook.remove(workbook[sheet_name])
 
         worksheet = workbook.create_sheet(title=target_name)
 
@@ -218,6 +215,7 @@ class ExcelAgrupadorService:
             worksheet.append([self._clean_excel_value(value) for value in row])
 
         worksheet.freeze_panes = "A2"
+        worksheet.auto_filter.ref = worksheet.dimensions
 
         for column in worksheet.columns:
             max_length = 0

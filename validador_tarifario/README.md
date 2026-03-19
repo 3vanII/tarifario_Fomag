@@ -1,6 +1,6 @@
 # Validador Tarifario
 
-Aplicación de escritorio en Python para preparar la primera etapa del proceso de validación de tarifarios: crear una hoja **AGRUPADOR** dentro de un Excel, uniendo todas sus pestañas y agregando la columna **Pestaña origen**.
+Aplicación de escritorio en Python para preparar la primera etapa del proceso de validación de tarifarios: crear un Excel final con una única hoja agrupadora, uniendo todas sus pestañas y agregando la columna **Pestaña origen**.
 
 ## Qué hace
 
@@ -8,9 +8,10 @@ Aplicación de escritorio en Python para preparar la primera etapa del proceso d
 - Permite seleccionar la carpeta de salida.
 - Lee todas las hojas del archivo, excepto `AGRUPADOR`.
 - Detecta de forma automática la fila más probable de encabezado en cada hoja.
-- Une la información en una hoja nueva llamada `AGRUPADOR`.
+- Une la información en una única hoja nueva llamada `AGRUPADOR` (o el nombre que indiques).
 - Agrega la columna `Pestaña origen` al inicio.
 - Genera un nuevo archivo en la carpeta de salida, sin modificar el original.
+- El archivo de salida conserva únicamente la hoja agrupada que solicitaste.
 
 ## Estructura
 
@@ -78,5 +79,5 @@ El ejecutable quedará en la carpeta `dist`.
 ## Notas
 
 - Soporta `.xlsx` y `.xlsm`.
-- Conserva macros en `.xlsm` al guardar el archivo de salida.
+- En archivos `.xlsm`, intenta conservar la estructura del libro al generar el archivo con una sola hoja final.
 - La lógica está separada por módulos para que luego puedas agregar más validaciones.
