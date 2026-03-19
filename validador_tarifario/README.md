@@ -11,7 +11,9 @@ Aplicación de escritorio en Python para preparar la primera etapa del proceso d
 - Une la información en una única hoja nueva llamada `AGRUPADOR` (o el nombre que indiques).
 - Agrega la columna `Pestaña origen` al inicio.
 - Valida la columna `CUPS` contra las bases `SOAT UVB 2026.xlsx`, `SOAT 2025.xlsx` y `TablaReferencia_CUPS__1.csv`.
-- Envía a una hoja `ERRORES` las filas cuyo `CUPS` no exista en ninguna de las tres bases, agregando el motivo `Codigo CUPS invalido`.
+- Valida además la combinación `CÓDIGO HABILITACIÓN (12 DÍGITOS)` + `COD SERVICIO` contra la base `SERVICIOS REPS LIMPIOS.xlsx`.
+- Calcula la analítica inicial de `TARIFA FOMAG` con las columnas `DIFERENCIA VS SOAT 2025` y `DIFERENCIA VS SOAT UVB 2026`, usando la fórmula `SOAT - TARIFA FOMAG`.
+- Envía a una hoja `ERRORES` las filas con inconsistencias, indicando si el `CUPS` es inválido, si el código de habilitación no existe en REPS o si la sede existe pero no tiene habilitado el servicio reportado.
 - Genera un nuevo archivo en la carpeta de salida, sin modificar el original.
 - El archivo de salida conserva la hoja agrupada solicitada y, si aplica, una hoja adicional con errores.
 

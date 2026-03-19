@@ -310,7 +310,7 @@ class MainWindow(ttk.Frame):
             return
 
         self.set_processing_state(True)
-        self.status_var.set("Procesando archivo, validando CUPS y preparando la salida...")
+        self.status_var.set("Procesando archivo, validando CUPS, REPS y analítica TARIFA FOMAG...")
         self.append_log("=" * 70)
         self.append_log("Inicio del proceso")
         self.append_log(f"Hoja final solicitada: {self.sheet_name_var.get().strip()}")

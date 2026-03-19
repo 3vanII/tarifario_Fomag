@@ -11,6 +11,7 @@ REFERENCE_DATA_DIR = Path(__file__).resolve().parents[4] / "base de datos"
 SOAT_UVB_2026_FILE = REFERENCE_DATA_DIR / "SOAT UVB 2026.xlsx"
 SOAT_2025_FILE = REFERENCE_DATA_DIR / "SOAT 2025.xlsx"
 TABLA_REFERENCIA_CUPS_FILE = REFERENCE_DATA_DIR / "TablaReferencia_CUPS__1.csv"
+SERVICIOS_REPS_FILE = REFERENCE_DATA_DIR / "SERVICIOS REPS LIMPIOS.xlsx"
 
 
 def ensure_output_dir(path: str | Path) -> Path:
