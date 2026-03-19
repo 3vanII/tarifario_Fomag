@@ -9,7 +9,7 @@ from validador_tarifario.utils.paths import PROJECT_NAME
 def main() -> None:
     root = tk.Tk()
     root.title(PROJECT_NAME)
-    root.geometry("900x620")
-    root.minsize(760, 520)
+    root.geometry("1180x760")
+    root.minsize(980, 640)
     MainWindow(root)
     root.mainloop()
