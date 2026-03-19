@@ -15,6 +15,7 @@ from validador_tarifario.utils.paths import (
     SOAT_2025_FILE,
     SOAT_UVB_2026_FILE,
     SUPPORTED_EXTENSIONS,
+    TABLA_REFERENCIA_CUPS_FILE,
 )
 
 LogFn = Callable[[str], None]
@@ -227,6 +228,12 @@ class ExcelAgrupadorService:
         df = df.dropna(axis=0, how="all")
         return df
 
+    def _load_reference_file(self, file_path: Path) -> pd.DataFrame:
+        suffix = file_path.suffix.lower()
+        if suffix == ".csv":
+            return pd.read_csv(file_path, dtype=object, sep=None, engine="python")
+        return pd.read_excel(file_path, dtype=object)
+
     def _get_reference_codes(self) -> set[str]:
         if self._reference_codes_cache is not None:
             return self._reference_codes_cache
@@ -234,6 +241,7 @@ class ExcelAgrupadorService:
         reference_sources = [
             (SOAT_UVB_2026_FILE, "CODIGO"),
             (SOAT_2025_FILE, "CÓDIGO"),
+            (TABLA_REFERENCIA_CUPS_FILE, "Codigo"),
         ]
 
         reference_codes: set[str] = set()
@@ -243,16 +251,17 @@ class ExcelAgrupadorService:
                 raise AgrupadorError(f"No se encontró la base de referencia: {file_path}")
 
             self.log(f"Cargando base de referencia: {file_path.name}")
-            df = pd.read_excel(file_path, dtype=object)
+            df = self._load_reference_file(file_path)
 
-            if column_name not in df.columns:
+            matched_column = self._find_column_name(df, column_name)
+            if matched_column is None:
                 raise AgrupadorError(
                     f"La columna '{column_name}' no existe en la base de referencia {file_path.name}."
                 )
 
             reference_codes.update(
                 normalized_code
-                for normalized_code in (self._normalize_code(value) for value in df[column_name].tolist())
+                for normalized_code in (self._normalize_code(value) for value in df[matched_column].tolist())
                 if normalized_code
             )
 
