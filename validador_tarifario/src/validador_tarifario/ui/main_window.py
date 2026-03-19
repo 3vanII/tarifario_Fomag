@@ -15,7 +15,7 @@ from validador_tarifario.utils.paths import DEFAULT_SHEET_NAME, PROJECT_NAME
 
 class MainWindow(ttk.Frame):
     def __init__(self, master: tk.Tk) -> None:
-        super().__init__(master, padding=16)
+        super().__init__(master, padding=0, style="App.TFrame")
         self.master = master
         self.pack(fill="both", expand=True)
 
@@ -23,75 +23,239 @@ class MainWindow(ttk.Frame):
         self.output_dir_var = tk.StringVar()
         self.sheet_name_var = tk.StringVar(value=DEFAULT_SHEET_NAME)
         self.status_var = tk.StringVar(value="Listo para iniciar.")
+        self.input_summary_var = tk.StringVar(value="Aún no has seleccionado un archivo.")
+        self.output_summary_var = tk.StringVar(value="Se creará una carpeta de salida cuando elijas un archivo.")
+        self.sheet_summary_var = tk.StringVar(value=f"El Excel generado tendrá una sola hoja: {DEFAULT_SHEET_NAME}.")
 
         self._build_styles()
         self._build_ui()
+        self.sheet_name_var.trace_add("write", lambda *_: self._refresh_summary())
+        self._refresh_summary()
 
     def _build_styles(self) -> None:
+        self.master.configure(bg="#eef4ff")
+
         style = ttk.Style()
         try:
             style.theme_use("clam")
         except tk.TclError:
             pass
 
-        style.configure("Title.TLabel", font=("Segoe UI", 14, "bold"))
-        style.configure("Hint.TLabel", foreground="#4b5563")
-        style.configure("Primary.TButton", padding=(10, 8))
+        style.configure("App.TFrame", background="#eef4ff")
+        style.configure("Card.TFrame", background="#ffffff", relief="flat")
+        style.configure("Section.TLabelframe", background="#ffffff", borderwidth=0)
+        style.configure("Section.TLabelframe.Label", background="#ffffff", foreground="#0f172a", font=("Segoe UI", 11, "bold"))
+        style.configure("Title.TLabel", background="#eef4ff", foreground="#0f172a", font=("Segoe UI", 22, "bold"))
+        style.configure("Hero.TLabel", background="#eef4ff", foreground="#475569", font=("Segoe UI", 11))
+        style.configure("MetricValue.TLabel", background="#ffffff", foreground="#1d4ed8", font=("Segoe UI", 18, "bold"))
+        style.configure("MetricLabel.TLabel", background="#ffffff", foreground="#64748b", font=("Segoe UI", 9))
+        style.configure("FieldLabel.TLabel", background="#ffffff", foreground="#334155", font=("Segoe UI", 10, "bold"))
+        style.configure("Hint.TLabel", background="#ffffff", foreground="#64748b", font=("Segoe UI", 9))
+        style.configure("Status.TLabel", background="#eef4ff", foreground="#0f172a", font=("Segoe UI", 10, "bold"))
+        style.configure("Primary.TButton", padding=(14, 10), font=("Segoe UI", 10, "bold"))
+        style.configure("Secondary.TButton", padding=(12, 8), font=("Segoe UI", 9, "bold"))
+        style.configure("Modern.Horizontal.TProgressbar", troughcolor="#dbeafe", background="#2563eb", bordercolor="#dbeafe", lightcolor="#2563eb", darkcolor="#2563eb")
+        style.map(
+            "Primary.TButton",
+            background=[("active", "#1d4ed8"), ("!disabled", "#2563eb")],
+            foreground=[("!disabled", "white")],
+        )
+        style.map(
+            "Secondary.TButton",
+            background=[("active", "#dbeafe"), ("!disabled", "#eff6ff")],
+            foreground=[("!disabled", "#1d4ed8")],
+        )
 
     def _build_ui(self) -> None:
-        self.columnconfigure(1, weight=1)
-        self.rowconfigure(5, weight=1)
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(2, weight=1)
 
-        ttk.Label(self, text=PROJECT_NAME, style="Title.TLabel").grid(
+        self._build_header()
+        self._build_metrics()
+        self._build_content()
+        self._build_footer()
+
+    def _build_header(self) -> None:
+        header = ttk.Frame(self, style="App.TFrame", padding=(22, 20, 22, 8))
+        header.grid(row=0, column=0, sticky="ew")
+        header.columnconfigure(0, weight=1)
+
+        ttk.Label(header, text=PROJECT_NAME, style="Title.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(
+            header,
+            text=(
+                "Convierte un libro con múltiples pestañas en un archivo final limpio, "
+                "con una sola hoja agrupadora y un flujo más claro para el usuario."
+            ),
+            style="Hero.TLabel",
+            wraplength=900,
+            justify="left",
+        ).grid(row=1, column=0, sticky="w", pady=(6, 0))
+
+    def _build_metrics(self) -> None:
+        metrics = ttk.Frame(self, style="App.TFrame", padding=(22, 6, 22, 12))
+        metrics.grid(row=1, column=0, sticky="ew")
+        for column in range(3):
+            metrics.columnconfigure(column, weight=1)
+
+        cards = [
+            ("1", "Archivo de entrada", "Selecciona un Excel .xlsx o .xlsm"),
+            ("1", "Hoja de salida", "Se genera únicamente la hoja solicitada"),
+            ("+1", "Columna extra", "Siempre agrega 'Pestaña origen'"),
+        ]
+
+        for index, (value, title, description) in enumerate(cards):
+            card = ttk.Frame(metrics, style="Card.TFrame", padding=16)
+            card.grid(row=0, column=index, sticky="nsew", padx=(0 if index == 0 else 6, 0))
+            card.columnconfigure(0, weight=1)
+            ttk.Label(card, text=value, style="MetricValue.TLabel").grid(row=0, column=0, sticky="w")
+            ttk.Label(card, text=title, style="FieldLabel.TLabel").grid(row=1, column=0, sticky="w", pady=(6, 0))
+            ttk.Label(card, text=description, style="Hint.TLabel", wraplength=220, justify="left").grid(
+                row=2, column=0, sticky="w", pady=(4, 0)
+            )
+
+    def _build_content(self) -> None:
+        content = ttk.Frame(self, style="App.TFrame", padding=(22, 0, 22, 12))
+        content.grid(row=2, column=0, sticky="nsew")
+        content.columnconfigure(0, weight=5)
+        content.columnconfigure(1, weight=4)
+        content.rowconfigure(0, weight=1)
+
+        form_card = ttk.Frame(content, style="Card.TFrame", padding=20)
+        form_card.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        form_card.columnconfigure(1, weight=1)
+        form_card.rowconfigure(8, weight=1)
+
+        ttk.Label(form_card, text="Configuración del proceso", style="FieldLabel.TLabel").grid(
             row=0, column=0, columnspan=3, sticky="w"
         )
         ttk.Label(
-            self,
-            text="Agrupa todas las hojas del Excel en una nueva hoja y agrega la columna 'Pestaña origen'.",
+            form_card,
+            text="Define el archivo a leer, la carpeta destino y el nombre de la hoja única que quieres crear.",
             style="Hint.TLabel",
-        ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 16))
+            wraplength=580,
+            justify="left",
+        ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 18))
 
-        ttk.Label(self, text="Archivo Excel:").grid(row=2, column=0, sticky="w", pady=6)
-        ttk.Entry(self, textvariable=self.input_file_var).grid(row=2, column=1, sticky="ew", padx=8)
-        ttk.Button(self, text="Examinar", command=self.select_input_file).grid(row=2, column=2, sticky="ew")
+        self._build_file_field(
+            parent=form_card,
+            row=2,
+            label="Archivo Excel",
+            variable=self.input_file_var,
+            summary_var=self.input_summary_var,
+            button_text="Examinar",
+            button_command=self.select_input_file,
+        )
+        self._build_file_field(
+            parent=form_card,
+            row=4,
+            label="Carpeta de salida",
+            variable=self.output_dir_var,
+            summary_var=self.output_summary_var,
+            button_text="Elegir",
+            button_command=self.select_output_dir,
+        )
+        self._build_sheet_field(form_card, row=6)
 
-        ttk.Label(self, text="Carpeta salida:").grid(row=3, column=0, sticky="w", pady=6)
-        ttk.Entry(self, textvariable=self.output_dir_var).grid(row=3, column=1, sticky="ew", padx=8)
-        ttk.Button(self, text="Elegir", command=self.select_output_dir).grid(row=3, column=2, sticky="ew")
+        log_card = ttk.Frame(content, style="Card.TFrame", padding=20)
+        log_card.grid(row=0, column=1, sticky="nsew")
+        log_card.columnconfigure(0, weight=1)
+        log_card.rowconfigure(1, weight=1)
 
-        ttk.Label(self, text="Nombre hoja agrupadora:").grid(row=4, column=0, sticky="w", pady=6)
-        ttk.Entry(self, textvariable=self.sheet_name_var).grid(row=4, column=1, sticky="ew", padx=8)
-        ttk.Button(self, text="Usar AGRUPADOR", command=self.restore_default_sheet_name).grid(
-            row=4, column=2, sticky="ew"
+        ttk.Label(log_card, text="Seguimiento en tiempo real", style="FieldLabel.TLabel").grid(
+            row=0, column=0, sticky="w"
         )
 
-        log_frame = ttk.LabelFrame(self, text="Log de ejecución", padding=8)
-        log_frame.grid(row=5, column=0, columnspan=3, sticky="nsew", pady=(16, 12))
-        log_frame.columnconfigure(0, weight=1)
-        log_frame.rowconfigure(0, weight=1)
+        text_frame = ttk.Frame(log_card, style="Card.TFrame")
+        text_frame.grid(row=1, column=0, sticky="nsew", pady=(12, 0))
+        text_frame.columnconfigure(0, weight=1)
+        text_frame.rowconfigure(0, weight=1)
 
-        self.log_text = tk.Text(log_frame, wrap="word", height=16, state="disabled")
+        self.log_text = tk.Text(
+            text_frame,
+            wrap="word",
+            height=18,
+            state="disabled",
+            bg="#0f172a",
+            fg="#e2e8f0",
+            insertbackground="#e2e8f0",
+            relief="flat",
+            padx=12,
+            pady=12,
+            font=("Consolas", 10),
+        )
         self.log_text.grid(row=0, column=0, sticky="nsew")
 
-        scrollbar = ttk.Scrollbar(log_frame, orient="vertical", command=self.log_text.yview)
+        scrollbar = ttk.Scrollbar(text_frame, orient="vertical", command=self.log_text.yview)
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.log_text.configure(yscrollcommand=scrollbar.set)
 
-        bottom_frame = ttk.Frame(self)
-        bottom_frame.grid(row=6, column=0, columnspan=3, sticky="ew")
-        bottom_frame.columnconfigure(0, weight=1)
+        tips = ttk.Frame(log_card, style="Card.TFrame", padding=(0, 14, 0, 0))
+        tips.grid(row=2, column=0, sticky="ew")
+        tips.columnconfigure(0, weight=1)
+        ttk.Label(
+            tips,
+            text=(
+                "Tip: si no indicas carpeta de salida, al elegir el archivo se sugerirá una carpeta llamada 'salida'."
+            ),
+            style="Hint.TLabel",
+            wraplength=360,
+            justify="left",
+        ).grid(row=0, column=0, sticky="w")
 
-        ttk.Label(bottom_frame, textvariable=self.status_var).grid(row=0, column=0, sticky="w")
+    def _build_file_field(
+        self,
+        parent: ttk.Frame,
+        row: int,
+        label: str,
+        variable: tk.StringVar,
+        summary_var: tk.StringVar,
+        button_text: str,
+        button_command,
+    ) -> None:
+        ttk.Label(parent, text=label, style="FieldLabel.TLabel").grid(row=row, column=0, sticky="w", pady=(0, 4))
+        ttk.Entry(parent, textvariable=variable).grid(row=row, column=1, sticky="ew", padx=10)
+        ttk.Button(parent, text=button_text, style="Secondary.TButton", command=button_command).grid(
+            row=row, column=2, sticky="ew"
+        )
+        ttk.Label(parent, textvariable=summary_var, style="Hint.TLabel", wraplength=580, justify="left").grid(
+            row=row + 1, column=0, columnspan=3, sticky="w", pady=(4, 12)
+        )
+
+    def _build_sheet_field(self, parent: ttk.Frame, row: int) -> None:
+        ttk.Label(parent, text="Nombre de la hoja final", style="FieldLabel.TLabel").grid(
+            row=row + 1, column=0, sticky="w", pady=(0, 4)
+        )
+        ttk.Entry(parent, textvariable=self.sheet_name_var).grid(row=row + 1, column=1, sticky="ew", padx=10)
+        ttk.Button(
+            parent,
+            text="Restaurar AGRUPADOR",
+            style="Secondary.TButton",
+            command=self.restore_default_sheet_name,
+        ).grid(row=row + 1, column=2, sticky="ew")
+        ttk.Label(parent, textvariable=self.sheet_summary_var, style="Hint.TLabel", wraplength=580, justify="left").grid(
+            row=row + 2, column=0, columnspan=3, sticky="w", pady=(4, 0)
+        )
+
+    def _build_footer(self) -> None:
+        footer = ttk.Frame(self, style="App.TFrame", padding=(22, 0, 22, 22))
+        footer.grid(row=3, column=0, sticky="ew")
+        footer.columnconfigure(0, weight=1)
+
+        ttk.Label(footer, textvariable=self.status_var, style="Status.TLabel").grid(row=0, column=0, sticky="w")
+        self.progress = ttk.Progressbar(footer, mode="indeterminate", style="Modern.Horizontal.TProgressbar", length=180)
+        self.progress.grid(row=0, column=1, padx=12)
         self.process_button = ttk.Button(
-            bottom_frame,
+            footer,
             text="Procesar archivo",
             style="Primary.TButton",
             command=self.process_file,
         )
-        self.process_button.grid(row=0, column=1, sticky="e")
+        self.process_button.grid(row=0, column=2, sticky="e")
 
     def restore_default_sheet_name(self) -> None:
         self.sheet_name_var.set(DEFAULT_SHEET_NAME)
+        self._refresh_summary()
 
     def select_input_file(self) -> None:
         file_path = filedialog.askopenfilename(
@@ -102,11 +266,13 @@ class MainWindow(ttk.Frame):
             self.input_file_var.set(file_path)
             if not self.output_dir_var.get().strip():
                 self.output_dir_var.set(str(Path(file_path).parent / "salida"))
+            self._refresh_summary()
 
     def select_output_dir(self) -> None:
         folder_path = filedialog.askdirectory(title="Seleccionar carpeta de salida")
         if folder_path:
             self.output_dir_var.set(folder_path)
+            self._refresh_summary()
 
     def append_log(self, message: str) -> None:
         self.log_text.configure(state="normal")
@@ -118,6 +284,10 @@ class MainWindow(ttk.Frame):
     def set_processing_state(self, processing: bool) -> None:
         state = "disabled" if processing else "normal"
         self.process_button.configure(state=state)
+        if processing:
+            self.progress.start(10)
+        else:
+            self.progress.stop()
 
     def validate_form(self) -> bool:
         input_file = self.input_file_var.get().strip()
@@ -140,9 +310,10 @@ class MainWindow(ttk.Frame):
             return
 
         self.set_processing_state(True)
-        self.status_var.set("Procesando archivo...")
+        self.status_var.set("Procesando archivo y preparando la hoja final...")
         self.append_log("=" * 70)
         self.append_log("Inicio del proceso")
+        self.append_log(f"Hoja final solicitada: {self.sheet_name_var.get().strip()}")
 
         worker = threading.Thread(target=self._run_process, daemon=True)
         worker.start()
@@ -166,12 +337,34 @@ class MainWindow(ttk.Frame):
     def _thread_safe_log(self, message: str) -> None:
         self.master.after(0, self.append_log, message)
 
+    def _refresh_summary(self) -> None:
+        input_path = self.input_file_var.get().strip()
+        output_path = self.output_dir_var.get().strip()
+        sheet_name = self.sheet_name_var.get().strip() or DEFAULT_SHEET_NAME
+
+        if input_path:
+            input_file = Path(input_path)
+            self.input_summary_var.set(
+                f"Archivo seleccionado: {input_file.name} • Ubicación: {input_file.parent}"
+            )
+        else:
+            self.input_summary_var.set("Aún no has seleccionado un archivo.")
+
+        if output_path:
+            self.output_summary_var.set(f"El archivo procesado se guardará en: {output_path}")
+        else:
+            self.output_summary_var.set("Se creará una carpeta de salida cuando elijas un archivo.")
+
+        self.sheet_summary_var.set(
+            f"El Excel generado contendrá únicamente la hoja '{sheet_name}' con toda la información agrupada."
+        )
+
     def _on_success(self, output_file: Path, total_rows: int, processed_sheets: int) -> None:
         self.append_log(f"Hojas procesadas: {processed_sheets}")
         self.append_log(f"Total filas agrupadas: {total_rows:,}")
         self.append_log(f"Archivo de salida: {output_file}")
         self.append_log("Proceso finalizado correctamente.")
-        self.status_var.set("Proceso completado.")
+        self.status_var.set("Proceso completado correctamente.")
         self.set_processing_state(False)
         messagebox.showinfo(
             PROJECT_NAME,
@@ -180,6 +373,6 @@ class MainWindow(ttk.Frame):
 
     def _on_error(self, message: str) -> None:
         self.append_log(message)
-        self.status_var.set("Se produjo un error.")
+        self.status_var.set("Se produjo un error durante el proceso.")
         self.set_processing_state(False)
         messagebox.showerror(PROJECT_NAME, message)
