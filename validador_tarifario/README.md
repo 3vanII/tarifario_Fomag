@@ -10,8 +10,10 @@ Aplicación de escritorio en Python para preparar la primera etapa del proceso d
 - Detecta de forma automática la fila más probable de encabezado en cada hoja.
 - Une la información en una única hoja nueva llamada `AGRUPADOR` (o el nombre que indiques).
 - Agrega la columna `Pestaña origen` al inicio.
+- Valida la columna `CUPS` contra las bases `SOAT UVB 2026.xlsx` y `SOAT 2025.xlsx`.
+- Envía a una hoja `ERRORES` las filas cuyo `CUPS` no exista en ninguna de las dos bases, agregando el motivo `Codigo CUPS invalido`.
 - Genera un nuevo archivo en la carpeta de salida, sin modificar el original.
-- El archivo de salida conserva únicamente la hoja agrupada que solicitaste.
+- El archivo de salida conserva la hoja agrupada solicitada y, si aplica, una hoja adicional con errores.
 
 ## Estructura
 
@@ -81,3 +83,4 @@ El ejecutable quedará en la carpeta `dist`.
 - Soporta `.xlsx` y `.xlsm`.
 - En archivos `.xlsm`, intenta conservar la estructura del libro al generar el archivo con una sola hoja final.
 - La lógica está separada por módulos para que luego puedas agregar más validaciones.
+- Las bases de referencia para la validación CUPS se leen desde la carpeta `base de datos/` ubicada en la raíz del repositorio.

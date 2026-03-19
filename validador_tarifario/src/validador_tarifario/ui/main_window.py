@@ -310,7 +310,7 @@ class MainWindow(ttk.Frame):
             return
 
         self.set_processing_state(True)
-        self.status_var.set("Procesando archivo y preparando la hoja final...")
+        self.status_var.set("Procesando archivo, validando CUPS y preparando la salida...")
         self.append_log("=" * 70)
         self.append_log("Inicio del proceso")
         self.append_log(f"Hoja final solicitada: {self.sheet_name_var.get().strip()}")
@@ -328,7 +328,15 @@ class MainWindow(ttk.Frame):
             service = ExcelAgrupadorService(logger=self._thread_safe_log)
             result = service.process_file(config)
 
-            self.master.after(0, self._on_success, result.output_file, result.total_rows, result.processed_sheets)
+            self.master.after(
+                0,
+                self._on_success,
+                result.output_file,
+                result.total_rows,
+                result.processed_sheets,
+                result.error_rows,
+                result.total_input_rows,
+            )
         except AgrupadorError as exc:
             self.master.after(0, self._on_error, str(exc))
         except Exception as exc:  # noqa: BLE001
@@ -359,16 +367,28 @@ class MainWindow(ttk.Frame):
             f"El Excel generado contendrá únicamente la hoja '{sheet_name}' con toda la información agrupada."
         )
 
-    def _on_success(self, output_file: Path, total_rows: int, processed_sheets: int) -> None:
+    def _on_success(
+        self,
+        output_file: Path,
+        total_rows: int,
+        processed_sheets: int,
+        error_rows: int,
+        total_input_rows: int,
+    ) -> None:
         self.append_log(f"Hojas procesadas: {processed_sheets}")
-        self.append_log(f"Total filas agrupadas: {total_rows:,}")
+        self.append_log(f"Total filas leídas: {total_input_rows:,}")
+        self.append_log(f"Filas válidas en {self.sheet_name_var.get().strip() or DEFAULT_SHEET_NAME}: {total_rows:,}")
+        self.append_log(f"Filas enviadas a ERRORES: {error_rows:,}")
         self.append_log(f"Archivo de salida: {output_file}")
         self.append_log("Proceso finalizado correctamente.")
         self.status_var.set("Proceso completado correctamente.")
         self.set_processing_state(False)
         messagebox.showinfo(
             PROJECT_NAME,
-            f"Proceso completado correctamente.\n\nArchivo generado:\n{output_file}",
+            "Proceso completado correctamente.\n\n"
+            f"Filas válidas: {total_rows:,}\n"
+            f"Filas con error: {error_rows:,}\n\n"
+            f"Archivo generado:\n{output_file}",
         )
 
     def _on_error(self, message: str) -> None:
